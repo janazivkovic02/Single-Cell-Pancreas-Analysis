@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import scanpy as sc
+import numpy as np
 
 
 def store_raw_counts(adata: sc.AnnData) -> None:

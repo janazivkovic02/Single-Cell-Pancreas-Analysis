@@ -1,69 +1,19 @@
-# =========================
-# Python cache & bytecode
-# =========================
+# data / outputs
+data/raw/
+outputs/
+*.h5ad
+
+# python
 __pycache__/
-*.py[cod]
-*$py.class
-
-# =========================
-# Virtual environments
-# =========================
-venv/
-env/
-ENV/
-myenv/
+*.pyc
 .venv/
-
-# =========================
-# Jupyter Notebook
-# =========================
+venv/
+myenv/
+.env/
 .ipynb_checkpoints/
 
-# =========================
-# Distribution / packaging
-# =========================
-build/
-dist/
-*.egg-info/
-.eggs/
-
-# =========================
-# Logs
-# =========================
+# logs
 *.log
 
-# =========================
-# IDEs
-# =========================
-.vscode/
-.idea/
-
-# =========================
-# OS files
-# =========================
+# OS
 .DS_Store
-Thumbs.db
-
-# =========================
-# Large data files (scRNA-seq)
-# =========================
-*.h5ad
-*.loom
-*.mtx
-*.csv.gz
-*.tsv.gz
-*.h5
-*.rds
-
-# =========================
-# Figures / outputs
-# =========================
-figures/
-plots/
-results/
-outputs/
-
-# =========================
-# Environment files (optional)
-# =========================
-.env

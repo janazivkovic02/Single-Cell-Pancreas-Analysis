@@ -1,4 +1,4 @@
-# src/clustering.py
+# src/cells_clustering.py
 from __future__ import annotations
 
 from typing import List
@@ -9,12 +9,12 @@ from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
 import hdbscan 
 
-def cluster_kmeans(adata: sc.AnnData, k: int = 7, key: str = "kmeans_cluster", random_state: int = 42) -> None:
+def cluster_kmeans(adata: sc.AnnData, k: int, key: str = "kmeans_cluster", random_state: int = 42) -> None:
     X = adata.obsm["X_pca"]
     km = KMeans(n_clusters=k, random_state=random_state)
     adata.obs[key] = km.fit_predict(X).astype(str)
 
-def cluster_spectral(adata: sc.AnnData, k: int = 7, key: str = "spectral_cluster", n_neighbors: int = 15, random_state: int = 42,assign_labels: str = "kmeans") -> None:
+def cluster_spectral(adata: sc.AnnData, k: int, key: str = "spectral_cluster", n_neighbors: int = 15, random_state: int = 42,assign_labels: str = "kmeans") -> None:
     X = adata.obsm["X_pca"]
     sp = SpectralClustering(
         n_clusters=k,
@@ -25,7 +25,7 @@ def cluster_spectral(adata: sc.AnnData, k: int = 7, key: str = "spectral_cluster
     )
     adata.obs[key] = sp.fit_predict(X).astype(str)
 
-def cluster_gmm(adata: sc.AnnData, k: int = 7, key: str = "gmm_cluster", random_state: int = 42) -> None:
+def cluster_gmm(adata: sc.AnnData, k: int, key: str = "gmm_cluster", random_state: int = 42) -> None:
     X = adata.obsm["X_pca"]
     gmm = GaussianMixture(n_components=k, covariance_type="full", random_state=random_state)
     gmm.fit(X)

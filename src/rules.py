@@ -26,7 +26,6 @@ class RulesConfig:
 
 
 def _get_matrix(adata: sc.AnnData, layer: Optional[str]):
-    """Return expression matrix from adata.layers[layer] or adata.X."""
     if layer is not None and layer in adata.layers:
         return adata.layers[layer]
     return adata.X
@@ -38,9 +37,6 @@ def select_hvgs_for_rules(
     batch_key: Optional[str] = "batch",
     key_added: str = "hvg_rules",
 ) -> np.ndarray:
-    """
-    Select highly variable genes for association rules analysis.
-    """
     use_batch = batch_key if (batch_key is not None and batch_key in adata.obs.columns) else None
 
     sc.pp.highly_variable_genes(
@@ -62,13 +58,7 @@ def make_binary_df(
     groupby: str = "assigned_cluster",
     min_frac_in_group: float = 0.10,
 ) -> pd.DataFrame:
-    """
-    Build binary transaction matrix at group level.
-
-    Rows = groups (e.g. clusters)
-    Columns = selected genes
-    Value = 1 if gene is expressed in at least min_frac_in_group fraction of cells in the group
-    """
+    
     if groupby not in adata.obs.columns:
         raise ValueError(f"groupby='{groupby}' not found in adata.obs.")
 
@@ -115,9 +105,7 @@ def mine_fpgrowth_rules(
     metric: str = "lift",
     min_threshold: float = 1.0,
 ):
-    """
-    Run FP-Growth and derive association rules.
-    """
+    
     X = binary_df.astype(bool)
 
     frequent_itemsets = fpgrowth(
@@ -187,9 +175,7 @@ def run_rules_pipeline(
 
 
 def rules_to_edge_list(rules: pd.DataFrame) -> pd.DataFrame:
-    """
-    Convert single-gene association rules into an edge list.
-    """
+    
     if rules.empty:
         return pd.DataFrame(columns=["gene1", "gene2", "support", "confidence", "lift"])
 

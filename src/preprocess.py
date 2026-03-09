@@ -1,3 +1,5 @@
+# src/preprocess.py
+
 from __future__ import annotations
 
 import scanpy as sc
@@ -5,7 +7,6 @@ import numpy as np
 
 
 def store_raw_counts(adata: sc.AnnData) -> None:
-    """Sačuvaj sirove count-ove u layer pre normalizacije."""
     adata.layers["counts"] = adata.X.copy()
 
 

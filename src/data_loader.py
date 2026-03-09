@@ -1,6 +1,6 @@
 #učitavanje CSV→AnnData, concat
 
-# src/io.py
+# src/data_loader.py
 from __future__ import annotations
 
 from pathlib import Path

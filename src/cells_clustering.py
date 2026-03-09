@@ -7,14 +7,17 @@ import scanpy as sc
 from sklearn.cluster import KMeans, SpectralClustering
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
-import hdbscan 
+import hdbscan
 
-def cluster_kmeans(adata: sc.AnnData, k: int, key: str = "kmeans_cluster", random_state: int = 42) -> None:
+from .config import RANDOM_STATE
+
+
+def cluster_kmeans(adata: sc.AnnData, k: int, key: str = "kmeans_cluster", random_state: int = RANDOM_STATE) -> None:
     X = adata.obsm["X_pca"]
     km = KMeans(n_clusters=k, random_state=random_state)
     adata.obs[key] = km.fit_predict(X).astype(str)
 
-def cluster_spectral(adata: sc.AnnData, k: int, key: str = "spectral_cluster", n_neighbors: int = 15, random_state: int = 42,assign_labels: str = "kmeans") -> None:
+def cluster_spectral(adata: sc.AnnData, k: int, key: str = "spectral_cluster", n_neighbors: int = 15, random_state: int = RANDOM_STATE,assign_labels: str = "kmeans") -> None:
     X = adata.obsm["X_pca"]
     sp = SpectralClustering(
         n_clusters=k,
@@ -25,13 +28,13 @@ def cluster_spectral(adata: sc.AnnData, k: int, key: str = "spectral_cluster", n
     )
     adata.obs[key] = sp.fit_predict(X).astype(str)
 
-def cluster_gmm(adata: sc.AnnData, k: int, key: str = "gmm_cluster", random_state: int = 42) -> None:
+def cluster_gmm(adata: sc.AnnData, k: int, key: str = "gmm_cluster", random_state: int = RANDOM_STATE) -> None:
     X = adata.obsm["X_pca"]
     gmm = GaussianMixture(n_components=k, covariance_type="full", random_state=random_state)
     gmm.fit(X)
     adata.obs[key] = gmm.predict(X).astype(str)
 
-def cluster_hdbscan(adata: sc.AnnData, min_cluster_size: int = 50,min_samples: int | None = None,key: str = "hdbscan_cluster") -> None:
+def cluster_hdbscan(adata: sc.AnnData, min_cluster_size: int, min_samples: int | None = None,key: str = "hdbscan_cluster") -> None:
     X = adata.obsm["X_pca"]
     model = hdbscan.HDBSCAN(
         min_cluster_size=min_cluster_size,
@@ -41,7 +44,7 @@ def cluster_hdbscan(adata: sc.AnnData, min_cluster_size: int = 50,min_samples: i
     labels = model.fit_predict(X)  
     adata.obs[key] = labels.astype(str)
 
-def cluster_leiden(adata: sc.AnnData, resolutions: List[float], rep_for_neighbors: str = "X_pca", n_neighbors: int = 15, key_prefix: str = "leiden_res", random_state: int = 42) -> None: 
+def cluster_leiden(adata: sc.AnnData, resolutions: List[float], rep_for_neighbors: str = "X_pca", n_neighbors: int = 15, key_prefix: str = "leiden_res", random_state: int = RANDOM_STATE) -> None: 
     sc.pp.neighbors(adata, n_neighbors=n_neighbors, use_rep=rep_for_neighbors) 
     for r in resolutions: 
         key = f"{key_prefix}{str(r).replace('.', '_')}" 

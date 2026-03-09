@@ -19,6 +19,8 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.decomposition import PCA, TruncatedSVD
 from scipy import sparse
 
+from .config import RANDOM_STATE
+
 try:
     from xgboost import XGBClassifier
 except Exception:
@@ -46,7 +48,7 @@ def evaluate(y_true, y_pred, labels=None) -> Dict[str, Any]:
     }
 
 
-def train_random_forest(split: SplitData, random_state: int = 42) -> Tuple[Any, Dict[str, Any]]:
+def train_random_forest(split: SplitData, random_state: int = RANDOM_STATE) -> Tuple[Any, Dict[str, Any]]:
     rf = RandomForestClassifier(
         n_estimators=500,
         max_depth=None,
@@ -85,7 +87,7 @@ def train_naive_bayes(split: SplitData) -> Tuple[Any, Dict[str, Any]]:
 
 
     
-def train_xgboost(split: SplitData, random_state: int = 42) -> Tuple[Any, Dict[str, Any]]:
+def train_xgboost(split: SplitData, random_state: int = RANDOM_STATE) -> Tuple[Any, Dict[str, Any]]:
     if XGBClassifier is None:
         raise ImportError("xgboost nije instaliran. Instaliraj: pip install xgboost")
 
@@ -113,7 +115,7 @@ def train_xgboost(split: SplitData, random_state: int = 42) -> Tuple[Any, Dict[s
     metrics["label_encoder"] = le
     return xgb, metrics
 
-def train_lightgbm(split: SplitData, random_state: int = 42) -> Tuple[Any, Dict[str, Any]]:
+def train_lightgbm(split: SplitData, random_state: int = RANDOM_STATE) -> Tuple[Any, Dict[str, Any]]:
     if LGBMClassifier is None:
         raise ImportError("lightgbm nije instaliran. Instaliraj: pip install lightgbm")
 
@@ -149,13 +151,8 @@ def _fit_transform_dimred(
     X_train,
     X_test,
     n_components: int = 50,
-    random_state: int = 42,
+    random_state: int = RANDOM_STATE,
 ):
-    """
-    Fit dim-reduction samo na train, pa transformiši train i test.
-    - Dense -> PCA
-    - Sparse -> TruncatedSVD (PCA nije praktična direktno na sparse)
-    """
     if sparse.issparse(X_train):
         reducer = TruncatedSVD(n_components=n_components, random_state=random_state)
     else:
@@ -172,7 +169,7 @@ def cv_evaluate_with_pca(
     trainer_fn,
     n_splits: int = 5,
     n_components: int = 50,
-    random_state: int = 42,
+    random_state: int = RANDOM_STATE,
     return_fold_metrics: bool = False,
 ):
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
@@ -232,7 +229,7 @@ def cv_compare_models_with_pca(
     trainers: Dict[str, Any],
     n_splits: int = 5,
     n_components: int = 50,
-    random_state: int = 42,
+    random_state: int = RANDOM_STATE,
 ):
     rows = []
     for name, fn in trainers.items():

@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+MIN_SUPPORT = 0.01
+MAX_LEN = 2
+ECLAT_MIN_SUPPORT = 0.02
+CORR_THRESHOLD = 0.2
+CHI2_P_THRESHOLD = 0.01
+CHI2_MAX_GENES = 200
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -137,12 +144,6 @@ def run_rules_pipeline(
     adata: sc.AnnData,
     cfg: RulesConfig = RulesConfig(),
 ) -> dict:
-    """
-    Full association-rules pipeline:
-    1. select HVGs
-    2. build binary group-level transaction matrix
-    3. mine frequent itemsets and rules
-    """
     hvgs_mask = select_hvgs_for_rules(
         adata,
         n_top=cfg.n_top_genes,

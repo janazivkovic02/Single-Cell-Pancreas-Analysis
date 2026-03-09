@@ -4,12 +4,14 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from typing import Dict
 
+from .config import RANDOM_STATE
+
 
 def plot_gene_network(
     G_gene: nx.Graph,
     gene_to_module: Dict[str, int],
     largest_component: bool = True,
-    seed: int = 42,
+    seed: int = RANDOM_STATE,
     k: float = 0.45,
     figsize: tuple = (14, 10),
     title: str = "Gene network colored by detected gene modules",
@@ -19,24 +21,19 @@ def plot_gene_network(
         print("Graph is empty.")
         return
 
-    # uzmi najveću povezanu komponentu
     if largest_component and G_gene.number_of_edges() > 0:
         largest_cc = max(nx.connected_components(G_gene), key=len)
         G_plot = G_gene.subgraph(largest_cc).copy()
     else:
         G_plot = G_gene.copy()
 
-    # layout
     pos = nx.spring_layout(G_plot, seed=seed, k=k)
 
-    # boje čvorova po modulu
     node_colors = [gene_to_module.get(node, -1) for node in G_plot.nodes()]
 
-    # veličina čvorova po stepenu
     degrees = dict(G_plot.degree())
     node_sizes = [300 + 180 * degrees[n] for n in G_plot.nodes()]
 
-    # debljina ivica po lift
     edge_widths = []
     for u, v in G_plot.edges():
         lift = G_plot[u][v].get("lift", 1.0)

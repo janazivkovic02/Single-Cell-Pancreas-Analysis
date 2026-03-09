@@ -35,7 +35,7 @@ def plot_diffmap_per_cluster(
 
         Xd = ad_sub.obsm["X_diffmap"]
 
-        plt.figure(figsize=(5, 7))
+        plt.figure(figsize=(8, 6))
         plt.scatter(Xd[:, 0], Xd[:, 1], s=8)
         plt.xlabel("DC1")
         plt.ylabel("DC2")
@@ -48,7 +48,7 @@ def plot_diffmap_for_selected_clusters(
     cluster_key="assigned_cluster",
     use_rep="X_pca",
     n_neighbors=15,
-    figsize=(6, 5),
+    figsize=(8, 6),
 ):
     clusters = adata.obs[cluster_key].astype(str)
     mask = clusters.isin(target_clusters)
@@ -75,7 +75,7 @@ def plot_diffmap_for_selected_clusters(
     plt.legend()
     plt.show()
 
-    plt.figure(figsize=(5, 7))
+    plt.figure(figsize=(8, 6))
     plt.plot(ad_sub.uns["diffmap_evals"], "o-")
     plt.xlabel("component")
     plt.ylabel("eigenvalue")

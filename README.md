@@ -36,28 +36,51 @@ GSM2230760_human4_umifm_counts.csv.gz
 # Project Structure
 
 Single-Cell-Pancreas-Analysis
+
 │
+
 ├── data/
+
 │ └── raw/
+
 │
+
 ├── notebooks/
+
 │ ├── main.ipynb
+
 │ ├── geometric_analysis.ipynb
+
 │ └── outputs/
+
 │ ├── figures/
+
 │ ├── tables/
+
 │ └── adata/
+
 │
+
 ├── src/
+
 │ ├── data_loader.py
+
 │ ├── quality_control.py
+
 │ ├── preprocess.py
+
 │ ├── rules.py
+
 │ ├── genes_clustering.py
+
 │ ├── cells_clustering.py
+
 │ ├── classification.py
+
 │ └── vis.py
+
 │
+
 └── README.md
 
 

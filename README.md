@@ -194,3 +194,24 @@ This analysis revealed that some endocrine cell populations (alpha, beta and del
 This explains why **density-based clustering methods such as HDBSCAN may merge these populations**, while centroid-based methods separate them.
 
 ---
+
+# How to Run the Project
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/janazivkovic02/Single-Cell-Pancreas-Analysis.git
+cd Single-Cell-Pancreas-Analysis
+```
+
+2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+3. Run the analysis notebooks
+```bash
+notebooks/main.ipynb
+notebooks/geometric_analysis.ipynb
+```
+

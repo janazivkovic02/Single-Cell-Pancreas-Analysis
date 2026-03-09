@@ -14,26 +14,6 @@ def plot_gene_network(
     figsize: tuple = (14, 10),
     title: str = "Gene network colored by detected gene modules",
 ) -> None:
-    """
-    Vizualizuje mrežu gena iz association rules.
-
-    Parametri
-    ----------
-    G_gene : nx.Graph
-        Graf gde su čvorovi geni a ivice veze iz pravila pridruživanja.
-    gene_to_module : dict
-        Mapiranje gen -> modul (klaster gena).
-    largest_component : bool
-        Ako je True, prikazuje samo najveću povezanu komponentu.
-    seed : int
-        Random seed za layout.
-    k : float
-        Parametar za spring_layout (kontroliše razmak čvorova).
-    figsize : tuple
-        Veličina figure.
-    title : str
-        Naslov grafika.
-    """
 
     if G_gene.number_of_nodes() == 0:
         print("Graph is empty.")

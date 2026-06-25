@@ -165,5 +165,5 @@ in `pyproject.toml`.
 4. Run the analysis notebook
 
 ```bash
-jupyter notebook notebooks/main.ipynb
+jupyter notebook main.ipynb
 ```

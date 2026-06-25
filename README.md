@@ -1,150 +1,112 @@
-# Single-Cell Pancreas Analysis  
+# Single-Cell Pancreas Analysis
 **Classification, Clustering and Association Rule Mining on Single-Cell RNA-seq Data**
 
 ## Overview
 
-This project analyzes single-cell RNA sequencing (scRNA-seq) data from the **Human Pancreas Single-Cell Transcriptomic Atlas** using several data mining and machine learning techniques.
+This project analyzes single-cell RNA sequencing (scRNA-seq) data from the **Human Pancreas
+Single-Cell Transcriptomic Atlas** using several data mining and machine learning techniques.
 
-The main goal of the project is to explore the structure of the data and evaluate different approaches for:
+The goal is to explore the structure of the data and evaluate different approaches for:
 
-- **Association rule mining** on gene expression  
-- **Clustering of cells**  
-- **Classification of cell types**  
-- **Geometric analysis of the data manifold**
+- **Association rule mining** on gene expression
+- **Clustering of cells**
+- **Classification of cell types**
 
-The analysis follows a standard scRNA-seq preprocessing pipeline and then applies several machine learning methods to understand both the **biological structure of the dataset** and the **behavior of different algorithms**.
-
-An additional focus of the project is understanding how the **geometric structure of the data influences clustering results**, particularly the difference between centroid-based clustering methods and density-based clustering methods.
+The analysis follows a standard scRNA-seq preprocessing pipeline and then applies several
+machine learning methods to understand both the **biological structure of the dataset** and
+the **behavior of different algorithms**.
 
 ---
 
-# Dataset
+## Dataset
 
-The analysis uses the dataset:
-
-**A Single-Cell Transcriptomic Atlas of the Human and Mouse Pancreas**
-
-The data contains UMI counts for thousands of genes measured in individual pancreatic cells.
+The analysis uses the dataset **A Single-Cell Transcriptomic Atlas of the Human and Mouse
+Pancreas**, which contains UMI counts for thousands of genes measured in individual
+pancreatic cells.
 
 Files used in this project:
 
+```
 GSM2230757_human1_umifm_counts.csv.gz
 GSM2230758_human2_umifm_counts.csv.gz
 GSM2230759_human3_umifm_counts.csv.gz
 GSM2230760_human4_umifm_counts.csv.gz
+```
 
-# Project Structure
+Place these files under `data/raw/`.
 
-Single-Cell-Pancreas-Analysis
+---
 
-│
+## Project Structure
 
+```
+Single-Cell-Pancreas-Analysis/
 ├── data/
-
-│ └── raw/
-
-│
-
+│   └── raw/                  # input *.csv.gz count matrices (git-ignored)
 ├── notebooks/
-
-│ ├── main.ipynb
-
-│ ├── geometric_analysis.ipynb
-
-│ └── outputs/
-
-│ ├── figures/
-
-│ ├── tables/
-
-│ └── adata/
-
-│
-
+│   └── main.ipynb            # full analysis pipeline
+├── outputs/                  # generated figures / AnnData (git-ignored)
+│   ├── figures/
+│   └── adata/
 ├── src/
-
-│ ├── data_loader.py
-
-│ ├── quality_control.py
-
-│ ├── preprocess.py
-
-│ ├── rules.py
-
-│ ├── genes_clustering.py
-
-│ ├── cells_clustering.py
-
-│ ├── classification.py
-
-│ └── vis.py
-
-│
-
+│   ├── __init__.py
+│   ├── config.py             # paths, random seed, shared column names
+│   ├── io_qc.py              # loading, quality control, normalization, HVG selection
+│   ├── rules.py              # FP-Growth association rule mining + filtering
+│   ├── genes_clustering.py   # gene co-expression network + module detection
+│   ├── cells_clustering.py   # KMeans / GMM / Spectral / HDBSCAN / Leiden + silhouette
+│   ├── classification.py     # cross-validated cell-type classification
+│   └── plotting.py           # gene network visualization
+├── pyproject.toml
 └── README.md
+```
 
+### Module overview
 
-### notebooks/
-
-**main.ipynb**
-
-Main analysis pipeline including:
-
-- preprocessing
-- association rule mining
-- gene network construction
-- clustering comparison
-- classification experiments
-
-**geometric_analysis.ipynb**
-
-Additional analysis of the geometric structure of the dataset including:
-
-- diffusion maps
-- intrinsic dimensionality
-- investigation of endocrine cell manifold structure
+| Module | Responsibility |
+|---|---|
+| `config.py` | Project paths, `RANDOM_STATE`, and shared AnnData key names. |
+| `io_qc.py` | CSV → AnnData loading, QC metrics, MAD-based outlier flagging, normalization/log, highly variable gene selection. |
+| `rules.py` | Binarize expression per cluster, mine frequent itemsets (FP-Growth), build and filter association rules. |
+| `genes_clustering.py` | Turn rules into a gene network and detect gene modules via greedy modularity. |
+| `cells_clustering.py` | Cluster cells with five algorithms and compare them by silhouette score. |
+| `classification.py` | Stratified k-fold cross-validation of several classifiers on PCA/SVD features. |
+| `plotting.py` | Draw the gene-module network. |
 
 ---
 
-# Data Preprocessing
+## Data Preprocessing
 
-The preprocessing pipeline follows standard scRNA-seq analysis practices.
+The preprocessing pipeline follows standard scRNA-seq practices:
 
-Steps include:
+1. Load raw UMI count matrices
+2. Quality control and outlier detection (median-absolute-deviation rule)
+3. Normalization and log transformation
+4. Selection of highly variable genes (HVG)
+5. Dimensionality reduction using PCA
 
-1. Loading raw UMI count matrices  
-2. Quality control and outlier detection  
-3. Normalization and log transformation  
-4. Selection of highly variable genes (HVG)  
-5. Dimensionality reduction using PCA  
-
-The processed dataset is stored as an **AnnData object** for efficient downstream analysis.
+The processed dataset is stored as an **AnnData object** (`outputs/adata/pancreas_processed.h5ad`).
 
 ---
 
-# Association Rule Mining
+## Association Rule Mining
 
-Association rules are applied to gene expression patterns to identify **co-expressed genes**.
+Association rules are applied to gene expression patterns to identify **co-expressed genes**:
 
-Pipeline:
-
-1. Selection of highly variable genes  
-2. Binarization of gene expression  
-3. Frequent itemset mining  
-4. Rule filtering using support, confidence and lift  
+1. Selection of highly variable genes
+2. Binarization of gene expression per cell cluster
+3. Frequent itemset mining (FP-Growth)
+4. Rule filtering using support, confidence and lift
 5. Construction of a **gene association network**
 
-Gene modules are detected by clustering the resulting gene network.
-
-This approach reveals groups of genes with similar expression patterns across cell populations.
+Gene modules are detected by clustering the resulting gene network, revealing groups of
+genes with similar expression patterns across cell populations.
 
 ---
 
-# Cell Clustering
+## Cell Clustering
 
-Several clustering algorithms are evaluated on the PCA representation of the dataset.
-
-Algorithms used:
+Several clustering algorithms are evaluated on the PCA representation of the dataset:
 
 - **KMeans**
 - **Gaussian Mixture Models (GMM)**
@@ -152,50 +114,34 @@ Algorithms used:
 - **HDBSCAN**
 - **Leiden community detection**
 
-Clustering results are compared using the **Silhouette score**.
-
-The analysis shows that density-based clustering can capture the global geometry of the data manifold more effectively than centroid-based methods.
+Results are compared using the **silhouette score**. KMeans, GMM and Spectral require a
+preset number of clusters; Leiden is controlled by a resolution parameter; HDBSCAN is
+density-based and infers the number of clusters on its own. Overlaying the labels on the
+UMAP/t-SNE embeddings shows that the density-based and centroid-based methods disagree on
+how the closely related endocrine populations are split.
 
 ---
 
-# Classification
+## Classification
 
-Cell types are predicted using supervised learning models.
+Cell types are predicted using supervised learning. Each model runs inside a scikit-learn
+`Pipeline` (dimensionality reduction → classifier) so the PCA/SVD step is fit on training
+folds only.
 
 Algorithms evaluated:
 
 - Random Forest
-- Support Vector Machines
+- Support Vector Machine
 - Naive Bayes
-- XGBoost
-- LightGBM
+- XGBoost *(optional)*
+- LightGBM *(optional)*
 
-Models are evaluated using **5-fold cross-validation** on PCA features.
-
-Performance metrics include:
-
-- accuracy
-- macro F1 score
+Models are evaluated using **5-fold stratified cross-validation** and compared by
+**accuracy** and **macro F1 score**.
 
 ---
 
-# Geometric Analysis of the Data
-
-To better understand clustering results, additional analysis of the data geometry was performed.
-
-Methods include:
-
-- **Diffusion maps**
-- **Intrinsic dimensionality estimation**
-- **Local PCA spectra**
-
-This analysis revealed that some endocrine cell populations (alpha, beta and delta cells) occupy nearby regions of a shared low-dimensional manifold.
-
-This explains why **density-based clustering methods such as HDBSCAN may merge these populations**, while centroid-based methods separate them.
-
----
-
-# How to Run the Project
+## How to Run
 
 1. Clone the repository
 
@@ -204,14 +150,20 @@ git clone https://github.com/janazivkovic02/Single-Cell-Pancreas-Analysis.git
 cd Single-Cell-Pancreas-Analysis
 ```
 
-2. Install dependencies
+2. Install the package and its dependencies
+
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
-3. Run the analysis notebooks
-```bash
-notebooks/main.ipynb
-notebooks/geometric_analysis.ipynb
-```
+This installs `src` as an importable package (so the notebook can simply do
+`from src.config import ...` without any `sys.path` manipulation). Dependencies are declared
+in `pyproject.toml`.
 
+3. Add the data files to `data/raw/` (see the **Dataset** section above).
+
+4. Run the analysis notebook
+
+```bash
+jupyter notebook notebooks/main.ipynb
+```

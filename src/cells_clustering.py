@@ -55,7 +55,7 @@ def silhouette_for_labels(adata: sc.AnnData, labels_key: str) -> float:
     labels = adata.obs[labels_key].astype(str).to_numpy() 
     mask = labels != '-1'
     if mask.sum() < 2:
-        return 'nan'
+        return ('nan')
     return float(silhouette_score(X[mask], labels[mask]))
 
 def compare_clusterings(adata: sc.AnnData, label_keys: List[str]) -> pd.DataFrame: 

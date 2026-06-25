@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-MAX_LEN = 2
-CORR_THRESHOLD = 0.2
-
 from dataclasses import dataclass
 from typing import Optional
 
@@ -12,16 +9,16 @@ import scanpy as sc
 from scipy import sparse
 from mlxtend.frequent_patterns import fpgrowth, association_rules
 
+from .config import BATCH_KEY, CLUSTER_KEY, COUNTS_LAYER
+
 
 @dataclass
 class RulesConfig:
     n_top_genes: int = 100
-    batch_key: Optional[str] = "batch"
-
-    layer: Optional[str] = "counts"
-    groupby: str = "assigned_cluster"
+    batch_key: Optional[str] = BATCH_KEY
+    layer: Optional[str] = COUNTS_LAYER
+    groupby: str = CLUSTER_KEY
     min_frac_in_group: float = 0.10
-
     min_support: float = 0.10
     max_len: int = 2
     metric: str = "lift"
@@ -37,7 +34,7 @@ def _get_matrix(adata: sc.AnnData, layer: Optional[str]):
 def select_hvgs_for_rules(
     adata: sc.AnnData,
     n_top: int = 100,
-    batch_key: Optional[str] = "batch",
+    batch_key: Optional[str] = BATCH_KEY,
     key_added: str = "hvg_rules",
 ) -> np.ndarray:
     use_batch = batch_key if (batch_key is not None and batch_key in adata.obs.columns) else None
@@ -57,11 +54,10 @@ def make_binary_df(
     adata: sc.AnnData,
     hvgs_mask: np.ndarray,
     *,
-    layer: Optional[str] = "counts",
-    groupby: str = "assigned_cluster",
+    layer: Optional[str] = COUNTS_LAYER,
+    groupby: str = CLUSTER_KEY,
     min_frac_in_group: float = 0.10,
 ) -> pd.DataFrame:
-    
     if groupby not in adata.obs.columns:
         raise ValueError(f"groupby='{groupby}' not found in adata.obs.")
 
@@ -69,8 +65,7 @@ def make_binary_df(
     if len(genes) == 0:
         raise ValueError("No genes selected for rules.")
 
-    X_full = _get_matrix(adata, layer)
-    X = X_full[:, hvgs_mask]
+    X = _get_matrix(adata, layer)[:, hvgs_mask]
 
     if sparse.issparse(X):
         X_bin = X.copy()
@@ -80,21 +75,17 @@ def make_binary_df(
         X_bin = (np.asarray(X) > 0).astype(np.uint8)
 
     groups = adata.obs[groupby].astype(str)
-    unique_groups = groups.unique()
 
     rows = []
     row_names = []
-
-    for g in unique_groups:
-        mask = (groups.values == g)
-
+    for g in groups.unique():
+        mask = groups.values == g
         if sparse.issparse(X_bin):
             frac = np.asarray(X_bin[mask, :].mean(axis=0)).ravel()
         else:
             frac = X_bin[mask, :].mean(axis=0)
 
-        row = (frac >= min_frac_in_group).astype(np.uint8)
-        rows.append(row)
+        rows.append((frac >= min_frac_in_group).astype(np.uint8))
         row_names.append(g)
 
     return pd.DataFrame(np.vstack(rows), index=row_names, columns=genes, dtype=np.uint8)
@@ -108,11 +99,8 @@ def mine_fpgrowth_rules(
     metric: str = "lift",
     min_threshold: float = 1.0,
 ):
-    
-    X = binary_df.astype(bool)
-
     frequent_itemsets = fpgrowth(
-        X,
+        binary_df.astype(bool),
         min_support=min_support,
         use_colnames=True,
         max_len=max_len,
@@ -121,32 +109,20 @@ def mine_fpgrowth_rules(
     if frequent_itemsets.empty:
         return frequent_itemsets, pd.DataFrame()
 
-    rules = association_rules(
-        frequent_itemsets,
-        metric=metric,
-        min_threshold=min_threshold,
-    )
+    rules = association_rules(frequent_itemsets, metric=metric, min_threshold=min_threshold)
 
     if not rules.empty:
         rules = rules.sort_values(
-            ["lift", "confidence", "support"],
-            ascending=False
+            ["lift", "confidence", "support"], ascending=False
         ).reset_index(drop=True)
 
     return frequent_itemsets, rules
 
 
-def run_rules_pipeline(
-    adata: sc.AnnData,
-    cfg: RulesConfig = RulesConfig(),
-) -> dict:
+def run_rules_pipeline(adata: sc.AnnData, cfg: RulesConfig = RulesConfig()) -> dict:
     hvgs_mask = select_hvgs_for_rules(
-        adata,
-        n_top=cfg.n_top_genes,
-        batch_key=cfg.batch_key,
-        key_added="hvg_rules",
+        adata, n_top=cfg.n_top_genes, batch_key=cfg.batch_key, key_added="hvg_rules"
     )
-
     binary_df = make_binary_df(
         adata,
         hvgs_mask,
@@ -154,7 +130,6 @@ def run_rules_pipeline(
         groupby=cfg.groupby,
         min_frac_in_group=cfg.min_frac_in_group,
     )
-
     frequent_itemsets, rules = mine_fpgrowth_rules(
         binary_df,
         min_support=cfg.min_support,
@@ -162,7 +137,6 @@ def run_rules_pipeline(
         metric=cfg.metric,
         min_threshold=cfg.min_threshold,
     )
-
     return {
         "hvgs_mask": hvgs_mask,
         "binary_df": binary_df,
@@ -171,23 +145,23 @@ def run_rules_pipeline(
     }
 
 
-def rules_to_edge_list(rules: pd.DataFrame) -> pd.DataFrame:
-    
+def filter_rules(
+    rules: pd.DataFrame,
+    min_support: float = 0.10,
+    min_confidence: float = 0.70,
+    min_lift: float = 1.50,
+) -> pd.DataFrame:
+    """Keep only strong rules and sort them (moved out of ``main.ipynb``)."""
     if rules.empty:
-        return pd.DataFrame(columns=["gene1", "gene2", "support", "confidence", "lift"])
+        return rules
 
-    rows = []
-    for _, r in rules.iterrows():
-        ant = list(r["antecedents"])
-        con = list(r["consequents"])
-
-        if len(ant) == 1 and len(con) == 1:
-            rows.append({
-                "gene1": ant[0],
-                "gene2": con[0],
-                "support": float(r["support"]),
-                "confidence": float(r["confidence"]),
-                "lift": float(r["lift"]),
-            })
-
-    return pd.DataFrame(rows)
+    mask = (
+        (rules["support"] >= min_support)
+        & (rules["confidence"] >= min_confidence)
+        & (rules["lift"] >= min_lift)
+    )
+    return (
+        rules[mask]
+        .sort_values(["lift", "confidence", "support"], ascending=False)
+        .reset_index(drop=True)
+    )

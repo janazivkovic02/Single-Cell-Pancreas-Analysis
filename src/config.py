@@ -1,18 +1,16 @@
-# src/config.py
-
-from dataclasses import dataclass
 from pathlib import Path
-
+ 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
-@dataclass(frozen=True)
-class Paths:
-    data_raw: Path = PROJECT_ROOT / "data" / "raw"
-    data_processed: Path = PROJECT_ROOT / "data" / "processed"
-    out_figures: Path = PROJECT_ROOT / "outputs" / "figures"
-    out_adata: Path = PROJECT_ROOT / "outputs" / "adata"
-
-PATHS = Paths()
-
-
+ 
+DATA_RAW = PROJECT_ROOT / "data" / "raw"
+OUT_FIGURES = PROJECT_ROOT / "outputs" / "figures"
+OUT_ADATA = PROJECT_ROOT / "outputs" / "adata"
+ 
 RANDOM_STATE = 42
+ 
+# AnnData keys (ČEMU SLUŽI OVO) 
+CLUSTER_KEY = "assigned_cluster"
+BATCH_KEY = "batch"
+BARCODE_KEY = "barcode"
+COUNTS_LAYER = "counts"
+ 

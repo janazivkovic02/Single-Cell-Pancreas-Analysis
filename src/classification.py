@@ -1,23 +1,18 @@
-# src/classification.py
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Dict, Any, Tuple
+from typing import Any, List
 
 import numpy as np
 import pandas as pd
+from scipy import sparse
 
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import StratifiedKFold, cross_validate
 from sklearn.preprocessing import LabelEncoder
-
+from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
-
-from sklearn.model_selection import StratifiedKFold
-from sklearn.decomposition import PCA, TruncatedSVD
-from scipy import sparse
 
 from .config import RANDOM_STATE
 
@@ -31,209 +26,116 @@ try:
 except Exception:
     LGBMClassifier = None
 
-
-@dataclass
-class SplitData:
-    X_train: np.ndarray
-    X_test: np.ndarray
-    y_train: np.ndarray
-    y_test: np.ndarray
-
-def evaluate(y_true, y_pred, labels=None) -> Dict[str, Any]:
-    return {
-        "accuracy": float(accuracy_score(y_true, y_pred)),
-        "macro_f1": float(f1_score(y_true, y_pred, average="macro")),
-        "report": classification_report(y_true, y_pred, labels=labels, zero_division=0),
-        "cm": confusion_matrix(y_true, y_pred, labels=labels),
-    }
+DEFAULT_MODELS: List[str] = ["RandomForest", "SVM", "NaiveBayes", "XGBoost", "LightGBM"]
+SCORING = ["accuracy", "f1_macro"]
 
 
-def train_random_forest(split: SplitData, random_state: int = RANDOM_STATE) -> Tuple[Any, Dict[str, Any]]:
-    rf = RandomForestClassifier(
-        n_estimators=500,
-        max_depth=None,
-        min_samples_split=5,
-        min_samples_leaf=2,
-        max_features="sqrt",
-        class_weight="balanced",     # <- dodato radi nejednakih klasa
-        n_jobs=-1,
-        random_state=random_state,
-    )
-    rf.fit(split.X_train, split.y_train)
-    pred = rf.predict(split.X_test)
-    labels = np.unique(np.concatenate([split.y_train, split.y_test]))
-    return rf, evaluate(split.y_test, pred, labels=labels)
+def make_model(name: str, random_state: int = RANDOM_STATE) -> Any:
+    key = name.lower()
+
+    if key in ("randomforest", "rf"):
+        return RandomForestClassifier(
+            n_estimators=500,
+            max_depth=None,
+            min_samples_split=5,
+            min_samples_leaf=2,
+            max_features="sqrt",
+            class_weight="balanced",
+            n_jobs=-1,
+            random_state=random_state,
+        )
+
+    if key in ("svm", "svc"):
+        return SVC(kernel="rbf", C=1.0, gamma="scale", probability=True, class_weight="balanced")
+
+    if key in ("naivebayes", "nb"):
+        return GaussianNB()
+
+    if key in ("xgboost", "xgb"):
+        if XGBClassifier is None:
+            raise ImportError("xgboost is not installed.")
+        return XGBClassifier(
+            objective="multi:softprob",
+            n_estimators=500,
+            max_depth=6,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            eval_metric="mlogloss",
+            random_state=random_state,
+            n_jobs=-1,
+        )
+
+    if key in ("lightgbm", "lgbm"):
+        if LGBMClassifier is None:
+            raise ImportError("lightgbm is not installed.")
+        return LGBMClassifier(
+            objective="multiclass",
+            n_estimators=300,
+            learning_rate=0.05,
+            num_leaves=50,
+            min_data_in_leaf=5,
+            class_weight="balanced",
+            verbose=-1,
+            max_depth=-1,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=random_state,
+            n_jobs=-1,
+        )
+
+    raise ValueError(f"Unknown model name: {name!r}")
 
 
-def train_svm(split: SplitData) -> Tuple[Any, Dict[str, Any]]:
-    svm = SVC(
-        kernel="rbf",
-        C=1.0,
-        gamma="scale",
-        probability=True,
-        class_weight="balanced",
-    )
-    svm.fit(split.X_train, split.y_train)
-    pred = svm.predict(split.X_test)
-    labels = np.unique(np.concatenate([split.y_train, split.y_test]))
-    return svm, evaluate(split.y_test, pred, labels=labels)
-
-def train_naive_bayes(split: SplitData) -> Tuple[Any, Dict[str, Any]]:
-    nb = GaussianNB()
-    nb.fit(split.X_train, split.y_train)
-    pred = nb.predict(split.X_test)
-    labels = np.unique(np.concatenate([split.y_train, split.y_test]))
-    return nb, evaluate(split.y_test, pred, labels=labels)
-
-    
-def train_xgboost(split: SplitData, random_state: int = RANDOM_STATE) -> Tuple[Any, Dict[str, Any]]:
-    le = LabelEncoder()
-    y_train_enc = le.fit_transform(split.y_train)
-
-    xgb = XGBClassifier(
-        objective="multi:softprob",
-        num_class=len(np.unique(y_train_enc)),
-        n_estimators=500,
-        max_depth=6,
-        learning_rate=0.05,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        eval_metric="mlogloss",
-        random_state=random_state,
-        n_jobs=-1,
-    )
-    xgb.fit(split.X_train, y_train_enc)
-    pred_enc = xgb.predict(split.X_test)
-    pred = le.inverse_transform(pred_enc)
-    labels = np.unique(np.concatenate([split.y_train, split.y_test]))
-    metrics = evaluate(split.y_test, pred, labels=labels)
-    metrics["label_encoder"] = le
-    return xgb, metrics
-
-def train_lightgbm(split: SplitData, random_state: int = RANDOM_STATE) -> Tuple[Any, Dict[str, Any]]:
-    le = LabelEncoder()
-    y_train_enc = le.fit_transform(split.y_train)
-
-    lgbm = LGBMClassifier(
-        objective="multiclass",
-        num_class=len(np.unique(y_train_enc)),
-        n_estimators=300,
-        learning_rate=0.05,
-        num_leaves=50,
-        min_data_in_leaf=5,
-        class_weight="balanced",
-        verbose=-1,
-        max_depth=-1,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        random_state=random_state,
-        n_jobs=-1,
-    )
-    lgbm.fit(split.X_train, y_train_enc)
-    pred_enc = lgbm.predict(split.X_test)
-    pred = le.inverse_transform(pred_enc)
-    labels = np.unique(np.concatenate([split.y_train, split.y_test]))
-    metrics = evaluate(split.y_test, pred, labels=labels)
-    metrics["label_encoder"] = le
-    return lgbm, metrics
-
-
-def _fit_transform_dimred(
-    X_train,
-    X_test,
-    n_components: int = 50,
-    random_state: int = RANDOM_STATE,
-):
-    if sparse.issparse(X_train):
-        reducer = TruncatedSVD(n_components=n_components, random_state=random_state)
-    else:
-        reducer = PCA(n_components=n_components, random_state=random_state)
-
-    X_train_red = reducer.fit_transform(X_train)
-    X_test_red = reducer.transform(X_test)
-    return reducer, X_train_red, X_test_red
+def _make_reducer(X, n_components: int, random_state: int):
+    if sparse.issparse(X):
+        return TruncatedSVD(n_components=n_components, random_state=random_state)
+    return PCA(n_components=n_components, random_state=random_state)
 
 
 def cv_evaluate_with_pca(
     X,
     y,
-    trainer_fn,
+    model_name: str,
     n_splits: int = 5,
     n_components: int = 50,
     random_state: int = RANDOM_STATE,
-    return_fold_metrics: bool = False,
-):
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+) -> dict:
+    y = LabelEncoder().fit_transform(np.asarray(y))
 
-    accs = []
-    f1s = []
-    fold_rows = []
+    pipe = Pipeline(
+        [
+            ("reduce", _make_reducer(X, n_components, random_state)),
+            ("clf", make_model(model_name, random_state)),
+        ]
+    )
+    cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    scores = cross_validate(pipe, X, y, cv=cv, scoring=SCORING)
 
-    y = np.asarray(y)
-
-    for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(y)), y), start=1):
-        X_train = X[train_idx]
-        X_test = X[test_idx]
-        y_train = y[train_idx]
-        y_test = y[test_idx]
-
-        reducer, X_train_red, X_test_red = _fit_transform_dimred(
-            X_train, X_test, n_components=n_components, random_state=random_state
-        )
-
-        split = SplitData(
-            X_train=X_train_red,
-            X_test=X_test_red,
-            y_train=y_train,
-            y_test=y_test,
-        )
-
-        model, m = trainer_fn(split)  # m sadrži accuracy/macro_f1/...
-        accs.append(m["accuracy"])
-        f1s.append(m["macro_f1"])
-
-        if return_fold_metrics:
-            fold_rows.append({
-                "fold": fold,
-                "accuracy": m["accuracy"],
-                "macro_f1": m["macro_f1"],
-            })
-
-    summary = {
-        "accuracy_mean": float(np.mean(accs)),
-        "accuracy_std": float(np.std(accs, ddof=1)) if len(accs) > 1 else 0.0,
-        "macro_f1_mean": float(np.mean(f1s)),
-        "macro_f1_std": float(np.std(f1s, ddof=1)) if len(f1s) > 1 else 0.0,
+    return {
+        "accuracy_mean": float(scores["test_accuracy"].mean()),
+        "accuracy_std": float(scores["test_accuracy"].std(ddof=1)),
+        "macro_f1_mean": float(scores["test_f1_macro"].mean()),
+        "macro_f1_std": float(scores["test_f1_macro"].std(ddof=1)),
         "n_splits": int(n_splits),
         "n_components": int(n_components),
     }
-
-    if return_fold_metrics:
-        return summary, pd.DataFrame(fold_rows)
-
-    return summary
 
 
 def cv_compare_models_with_pca(
     X,
     y,
-    trainers: Dict[str, Any],
+    model_names: List[str] = DEFAULT_MODELS,
     n_splits: int = 5,
     n_components: int = 50,
     random_state: int = RANDOM_STATE,
-):
+) -> pd.DataFrame:
     rows = []
-    for name, fn in trainers.items():
+    for name in model_names:
         try:
-            s = cv_evaluate_with_pca(
-                X=X,
-                y=y,
-                trainer_fn=fn,
-                n_splits=n_splits,
-                n_components=n_components,
-                random_state=random_state,
+            rows.append(
+                {"model": name, **cv_evaluate_with_pca(X, y, name, n_splits, n_components, random_state)}
             )
-            rows.append({"model": name, **s})
         except Exception as e:
             rows.append({"model": name, "error": str(e)})
 

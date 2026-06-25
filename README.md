@@ -132,8 +132,8 @@ Algorithms evaluated:
 - Random Forest
 - Support Vector Machine
 - Naive Bayes
-- XGBoost *(optional)*
-- LightGBM *(optional)*
+- XGBoost 
+- LightGBM 
 
 Models are evaluated using **5-fold stratified cross-validation** and compared by
 **accuracy** and **macro F1 score**.

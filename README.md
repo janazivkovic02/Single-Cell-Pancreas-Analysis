@@ -43,8 +43,7 @@ Place these files under `data/raw/`.
 Single-Cell-Pancreas-Analysis/
 ├── data/
 │   └── raw/                  # input *.csv.gz count matrices (git-ignored)
-├── notebooks/
-│   └── main.ipynb            # full analysis pipeline
+├── main.ipynb                # full analysis pipeline
 ├── outputs/                  # generated figures / AnnData (git-ignored)
 │   ├── figures/
 │   └── adata/

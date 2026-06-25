@@ -85,15 +85,10 @@ def train_naive_bayes(split: SplitData) -> Tuple[Any, Dict[str, Any]]:
     labels = np.unique(np.concatenate([split.y_train, split.y_test]))
     return nb, evaluate(split.y_test, pred, labels=labels)
 
-
     
 def train_xgboost(split: SplitData, random_state: int = RANDOM_STATE) -> Tuple[Any, Dict[str, Any]]:
-    if XGBClassifier is None:
-        raise ImportError("xgboost nije instaliran. Instaliraj: pip install xgboost")
-
     le = LabelEncoder()
     y_train_enc = le.fit_transform(split.y_train)
-    y_test_enc = le.transform(split.y_test)
 
     xgb = XGBClassifier(
         objective="multi:softprob",
@@ -116,12 +111,8 @@ def train_xgboost(split: SplitData, random_state: int = RANDOM_STATE) -> Tuple[A
     return xgb, metrics
 
 def train_lightgbm(split: SplitData, random_state: int = RANDOM_STATE) -> Tuple[Any, Dict[str, Any]]:
-    if LGBMClassifier is None:
-        raise ImportError("lightgbm nije instaliran. Instaliraj: pip install lightgbm")
-
     le = LabelEncoder()
     y_train_enc = le.fit_transform(split.y_train)
-    y_test_enc = le.transform(split.y_test)
 
     lgbm = LGBMClassifier(
         objective="multiclass",

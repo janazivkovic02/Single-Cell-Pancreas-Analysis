@@ -1,11 +1,7 @@
 from __future__ import annotations
 
-MIN_SUPPORT = 0.01
 MAX_LEN = 2
-ECLAT_MIN_SUPPORT = 0.02
 CORR_THRESHOLD = 0.2
-CHI2_P_THRESHOLD = 0.01
-CHI2_MAX_GENES = 200
 
 from dataclasses import dataclass
 from typing import Optional

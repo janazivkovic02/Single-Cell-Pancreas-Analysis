@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-import scanpy as sc
-from scipy import sparse
 import networkx as nx
 from networkx.algorithms.community import greedy_modularity_communities
 

@@ -53,7 +53,10 @@ def cluster_leiden(adata: sc.AnnData, resolutions: List[float], rep_for_neighbor
 def silhouette_for_labels(adata: sc.AnnData, labels_key: str) -> float:
     X = adata.obsm["X_pca"] 
     labels = adata.obs[labels_key].astype(str).to_numpy() 
-    return float(silhouette_score(X, labels))
+    mask = labels != '-1'
+    if mask.sum() < 2:
+        return 'nan'
+    return float(silhouette_score(X[mask], labels[mask]))
 
 def compare_clusterings(adata: sc.AnnData, label_keys: List[str]) -> pd.DataFrame: 
     rows = []

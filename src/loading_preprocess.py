@@ -1,4 +1,4 @@
-from __future__ import annotations # STA OVO ZNACI
+from __future__ import annotations 
 
 from pathlib import Path
 from typing import Sequence
@@ -10,7 +10,6 @@ from scipy.stats import median_abs_deviation
 
 from .config import BARCODE_KEY, BATCH_KEY, CLUSTER_KEY, COUNTS_LAYER
 
-# Default metadata columns kept as a tuple (immutable default argument).
 DEFAULT_METADATA_COLS: tuple[str, ...] = ("Unnamed: 0", BARCODE_KEY, CLUSTER_KEY)
 
 # Učitavanje
@@ -51,7 +50,6 @@ def is_outlier_mad(adata: sc.AnnData, metric: str, nmads: int = 5) -> np.ndarray
     med = np.median(M)
     mad = median_abs_deviation(M)
     if mad == 0:
-        # No spread -> no meaningful outlier rule; treat nothing as an outlier.
         return np.zeros_like(M, dtype=bool)
 
     low = med - nmads * mad

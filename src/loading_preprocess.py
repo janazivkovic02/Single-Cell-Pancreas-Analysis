@@ -72,8 +72,8 @@ def store_raw_counts(adata: sc.AnnData, layer: str = COUNTS_LAYER) -> None:
 
 
 def normalize_and_log(adata: sc.AnnData, target_sum: float = 1e4) -> None:
-    sc.pp.normalize_total(adata, target_sum=target_sum)
-    sc.pp.log1p(adata)
+    sc.pp.normalize_total(adata, target_sum=target_sum) # normalizujemo podatke 
+    sc.pp.log1p(adata) # log(1+x) jer je log(1)=0 (inace bi log(0) bila cesta vrednost)
     adata.raw = adata.copy()
 
 
@@ -87,7 +87,7 @@ def select_hvgs(
     sc.pp.highly_variable_genes(
         adata,
         n_top_genes=n_top_genes,
-        flavor="seurat",
-        batch_key=use_batch,
+        flavor="seurat", # Ovo je samo tip varijacije koju merimo (standardan je u ovoj oblasti)
+        batch_key=use_batch, # Pokusavamo da uhvatimo gene koji su zapravo varijabilni a ne oni koji variraju samo zbog razlike u batchevima
     )
     adata.var[store_key] = adata.var["highly_variable"].copy()

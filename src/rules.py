@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass # Omogućava pravljenje “data-only” klasa bez ručnog pisanja __init__, npr. za RulesConfig sam dobila automatski generisan konstruktor
 from typing import Optional
 
 import numpy as np
@@ -15,8 +15,8 @@ from .config import BATCH_KEY, CLUSTER_KEY, COUNTS_LAYER
 @dataclass
 class RulesConfig:
     n_top_genes: int = 100
-    batch_key: Optional[str] = BATCH_KEY
-    layer: Optional[str] = COUNTS_LAYER
+    batch_key: Optional[str] = BATCH_KEY # Može biti ili ime ili None
+    layer: Optional[str] = COUNTS_LAYER # Isto
     groupby: str = CLUSTER_KEY
     min_frac_in_group: float = 0.10
     min_support: float = 0.10
@@ -31,6 +31,7 @@ def _get_matrix(adata: sc.AnnData, layer: Optional[str]):
     return adata.X
 
 
+# Sada iz 4000 hvg biramo samo 100 koje cemo koristiti u izgradnji pravila pridruzivanja
 def select_hvgs_for_rules(
     adata: sc.AnnData,
     n_top: int = 100,
@@ -49,7 +50,7 @@ def select_hvgs_for_rules(
     adata.var[key_added] = adata.var["highly_variable"].copy()
     return adata.var[key_added].to_numpy(dtype=bool)
 
-
+# Pretvara scRNA-seq u market-basket format.
 def make_binary_df(
     adata: sc.AnnData,
     hvgs_mask: np.ndarray,
@@ -58,24 +59,31 @@ def make_binary_df(
     groupby: str = CLUSTER_KEY,
     min_frac_in_group: float = 0.10,
 ) -> pd.DataFrame:
+    # Grupisemo po assigned klasteru
     if groupby not in adata.obs.columns:
         raise ValueError(f"groupby='{groupby}' not found in adata.obs.")
 
+    # Koristimo samo 100 gena
     genes = adata.var_names[hvgs_mask].to_list()
     if len(genes) == 0:
         raise ValueError("No genes selected for rules.")
 
+    # Izdvajamo matricu vrednosti
     X = _get_matrix(adata, layer)[:, hvgs_mask]
 
+    # Ako je vrednost u matrici veca od nule cuvam kao 1 inace ostavljam 0 
     if sparse.issparse(X):
         X_bin = X.copy()
-        X_bin.data = np.ones_like(X_bin.data)
+        X_bin.data = np.ones_like(X_bin.data) # Sve nenulte vrednosti postaju 1 
         X_bin = X_bin.astype(np.uint8)
     else:
         X_bin = (np.asarray(X) > 0).astype(np.uint8)
 
+    # Sada grupisem gene na osnovu klastera
     groups = adata.obs[groupby].astype(str)
 
+    # Pravi se matrica koja za svoje redove ima ralzicite klastere, a kolone su geni i da li se oni pojavljuju u tom klasteru
+    # Na osnovu ove baze se prave pravila pridruzivanja
     rows = []
     row_names = []
     for g in groups.unique():
@@ -119,6 +127,7 @@ def mine_fpgrowth_rules(
     return frequent_itemsets, rules
 
 
+# Ova funkcija sluzi samo za pokretanje pipeline koji se odnosi na pravila pridruzvanja
 def run_rules_pipeline(adata: sc.AnnData, cfg: RulesConfig = RulesConfig()) -> dict:
     hvgs_mask = select_hvgs_for_rules(
         adata, n_top=cfg.n_top_genes, batch_key=cfg.batch_key, key_added="hvg_rules"
@@ -151,7 +160,7 @@ def filter_rules(
     min_confidence: float = 0.70,
     min_lift: float = 1.50,
 ) -> pd.DataFrame:
-    """Keep only strong rules and sort them (moved out of ``main.ipynb``)."""
+    # Zadrzavamo samo pravila koja su znacajna
     if rules.empty:
         return rules
 

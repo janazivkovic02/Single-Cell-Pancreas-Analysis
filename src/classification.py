@@ -26,10 +26,11 @@ try:
 except Exception:
     LGBMClassifier = None
 
+# Navodim sve modele koje cu koristiti
 DEFAULT_MODELS: List[str] = ["RandomForest", "SVM", "NaiveBayes", "XGBoost", "LightGBM"]
 SCORING = ["accuracy", "f1_macro"]
 
-
+# Ova funkcija mi definise modele i njihove hiperparametre koje cu koristiti
 def make_model(name: str, random_state: int = RANDOM_STATE) -> Any:
     key = name.lower()
 
@@ -86,7 +87,8 @@ def make_model(name: str, random_state: int = RANDOM_STATE) -> Any:
 
     raise ValueError(f"Unknown model name: {name!r}")
 
-
+# U odnosu na to kog je tipa matrica korsitim razlicite redukcije dimenzioalnost jer PCA ne radi dobro sa sparse matricama
+# TruncatedSVD je analog PCA samo bez centriranja
 def _make_reducer(X, n_components: int, random_state: int):
     if sparse.issparse(X):
         return TruncatedSVD(n_components=n_components, random_state=random_state)
@@ -109,8 +111,8 @@ def cv_evaluate_with_pca(
             ("clf", make_model(model_name, random_state)),
         ]
     )
-    cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
-    scores = cross_validate(pipe, X, y, cv=cv, scoring=SCORING)
+    cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state) # Stratifikovana podela zbog klasifikacije
+    scores = cross_validate(pipe, X, y, cv=cv, scoring=SCORING) # Ovo zapravo vraca ocene na svakom test delu tokom treniranja modela
 
     return {
         "accuracy_mean": float(scores["test_accuracy"].mean()),
@@ -121,7 +123,7 @@ def cv_evaluate_with_pca(
         "n_components": int(n_components),
     }
 
-
+# Ova funkcjia je implementirana da ako jedan model "pukne" to ne bude slucaj sa celim pipeline-om
 def cv_compare_models_with_pca(
     X,
     y,

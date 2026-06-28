@@ -4,8 +4,9 @@ import pandas as pd
 import networkx as nx
 from networkx.algorithms.community import greedy_modularity_communities
 
-
+# Ova funkcija sluzi da konstruisem graf
 def rules_to_gene_network(rules_f: pd.DataFrame) -> nx.Graph:
+    # Krecem od praznog grafa
     G = nx.Graph()
     if rules_f.empty:
         return G
@@ -14,8 +15,11 @@ def rules_to_gene_network(rules_f: pd.DataFrame) -> nx.Graph:
     for _, r in rules_f.iterrows():
         ant = list(r["antecedents"])
         con = list(r["consequents"])
-        if len(ant) == 1 and len(con) == 1:
-            a, b = sorted([ant[0], con[0]])
+        if len(ant) == 1 and len(con) == 1: # Filtriraju se samo 1-1 pravila (A -> B je jasna veza i moze da se protumaci u smislu grafa)
+            a, b = sorted([ant[0], con[0]]) # Sortiramo da se ne bi ponavljala pravila dva puta (A -> B i B -> A tj da bi ovo bila ista ivica)
+            # Ideja je sledeca
+            # A --- B
+            # weight = lift (veći lift → jača veza → više šanse da budu u istom modulu)
             edges.append(
                 {
                     "gene1": a,
@@ -51,8 +55,9 @@ def rules_to_gene_network(rules_f: pd.DataFrame) -> nx.Graph:
 def cluster_genes_from_network(G: nx.Graph, min_size: int = 2) -> list[list[str]]:
     if G.number_of_nodes() == 0 or G.number_of_edges() == 0:
         return []
+    # Modulariti meri su čvorovi gusti unutar grupa u odnosu na slučajni graf
     communities = greedy_modularity_communities(G, weight="weight")
-    return [sorted(list(c)) for c in communities if len(c) >= min_size]
+    return [sorted(list(c)) for c in communities if len(c) >= min_size] # Takodje zelimo da odbacimo male modelu tj. ako se klasteruje samo par gena
 
 
 def modules_to_gene_map(modules: list[list[str]]) -> dict[str, int]:
@@ -67,6 +72,7 @@ def modules_to_df(modules: list[list[str]]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# Vracamo graf u dataframe radi vizualizacije 
 def gene_network_edges_df(G: nx.Graph) -> pd.DataFrame:
     rows = [
         {

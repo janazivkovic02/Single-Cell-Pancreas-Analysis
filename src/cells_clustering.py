@@ -11,6 +11,7 @@ import hdbscan
 
 from .config import RANDOM_STATE
 
+# Sve metode klasterovanja ce biti definisane u PCA prostoru dimenzije 50 
 
 def cluster_kmeans(adata: sc.AnnData, k: int, key: str = "kmeans_cluster", random_state: int = RANDOM_STATE) -> None:
     X = adata.obsm["X_pca"]
@@ -50,12 +51,13 @@ def cluster_leiden(adata: sc.AnnData, resolutions: List[float], rep_for_neighbor
         key = f"{key_prefix}{str(r).replace('.', '_')}" 
         sc.tl.leiden(adata, key_added=key, resolution=r, random_state=random_state)
 
+# Funkcija koja racuna siluet skor za razlicite metode klasterovanja
 def silhouette_for_labels(adata: sc.AnnData, labels_key: str) -> float:
     X = adata.obsm["X_pca"] 
     labels = adata.obs[labels_key].astype(str).to_numpy() 
-    mask = labels != '-1'
+    mask = labels != '-1' # Ovo sam dodala da iskljucim tacke suma u HDBSCAN metodi
     if mask.sum() < 2:
-        return ('nan')
+        return float('nan') 
     return float(silhouette_score(X[mask], labels[mask]))
 
 def compare_clusterings(adata: sc.AnnData, label_keys: List[str]) -> pd.DataFrame: 
